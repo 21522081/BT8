@@ -1,45 +1,31 @@
-# app.py
 import streamlit as st
 from PIL import Image
 import tensorflow as tf
-from tensorflow.keras.preprocessing import image
-from tensorflow.keras.applications.vgg16 import preprocess_input
-import numpy as np
-import os
 
-# Load pre-trained model
-model = tf.keras.applications.VGG16(weights='imagenet')
+st.title('Vietnamese Food Recognition')
 
-# Function to predict the food item
-def predict_food(image_path):
-    img = image.load_img(image_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
+# Load the model from a .h5 file
+model = tf.keras.models.load_model('food_recognition_model.h5')
 
-    predictions = model.predict(img_array)
-    decoded_predictions = tf.keras.applications.vgg16.decode_predictions(predictions, top=1)[0]
-    
-    return decoded_predictions[0][1]
-
-# Streamlit app
-st.title("Vietnamese Food Recognition App")
-
-uploaded_file = st.file_uploader("Choose an image...", type="jpg")
+st.header('Upload an image of Vietnamese food')
+uploaded_file = st.file_uploader("Choose an image file", type=(['png', 'jpg', 'jpeg']))
 
 if uploaded_file is not None:
-    image_path = "uploaded_image.jpg"
-    with open(image_path, "wb") as f:
-        f.write(uploaded_file.getvalue())
+    image = Image.open(uploaded_file)
+    st.image(image, caption='Uploaded Image', use_column_width=True)
 
-    st.image(Image.open(uploaded_file), caption="Uploaded Image.", use_column_width=True)
+    if st.button('Predict'):
+        # Preprocess the image for prediction
+        image = image.resize((224, 224))  # Adjust to the input size of your model
+        image_array = np.array(image)
+        image_array = image_array / 255.0  # Normalize pixel values
+        image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
 
-    st.write("")
-    st.write("Classifying...")
+        # Make prediction
+        prediction = model.predict(image_array)
+        predicted_class = np.argmax(prediction)
 
-    food_name = predict_food(image_path)
-    st.success(f"The food in the image is: {food_name}")
-
-# Run the app
-if __name__ == "__main__":
-    st.run_app()
+        # Display the predicted class (replace with your class labels)
+        class_labels = ["Pho", "Banh Mi", "Bun Cha", "Com Tam", "..."]
+        st.header('Result')
+        st.text(f'Predicted Food: {class_labels[predicted_class]}')
